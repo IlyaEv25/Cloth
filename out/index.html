@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({ extensions: ["tex2jax.js"], jax: ["input/TeX", "output/HTML-CSS"], tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], displayMath: [ ['$$','$$'], ["\\[","\\]"] ], processEscapes: true }, "HTML-CSS": { availableFonts: ["TeX"] } });
+     </script>
+    
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+          TeX: { equationNumbers: { autoNumber: "AMS" } }
+        });
+        </script>
+        
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+
+
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Home</h1>
+    <div class = "bigtext">
+
+    <div>Пояснения по коду и обозначениям, которые в нем возникают. Модель ткани основана на <a href = "./sig98.pdf">статье</a>.</div>
+    
+
+    О динамике гладкой ткани можно думать как о гладком отображении:
+    $$W: \mathbb [0, \infty] \times [0, 1]^3 \to \mathbb R^3.$$
+    В момент времени $t$ тогда образ точки $(u, v)$ описывается вектором $W^t(u,v)$. Но нас интересует дискретная модель ткани,
+    состояния в которой можно представить конечным числом величин. Мы будем думать о ткани как о наборе треугольников, определенным образом соединенных друг с другом через ребра ("определенный образ" <=> триангуляция) на плоскости (u,v),
+    объединение которых составляет квадрат $[0,1] \times [0,1]$. Гладкое отображение из плоскости в трехмерное пространство можно приблизить кусочно-линейным, 
+    т.е. отображением, которое становится линейным при ограничении на каждый треугольник и которое отображает треугольник на плоскости в треугольник в 3-мерном пространстве. Таким образом можно представить отображение в момент времени t как массив матриц 2х3.
+    Матрица соответствующая r-ому треугольнику будет выглядеть так:
+    $$ 
+    \begin{equation}
+    W_t^r = 
+    \begin{bmatrix}
+        w^r_{u0}       & w^r_{v0} \\
+        w^r_{u1}       & w^r_{v1} \\
+        w^r_{u2}       & w^r_{v0}.
+    \end{bmatrix}
+    \end{equation}
+    $$
+
+    В дальнейшем нам понадобятся производные по направлениям $u$ и $v$ этого отображения(которые определены однозначно внутри треугольников, и которые на границах треугольников зависят
+    от того, "с какой стороны" берется предел) - они будут харакетризовать сдвиг и растяжение r-ого треугольника. Эти производные легко
+    находятся и они совпадают с векторами $\mathbf{w^r_u}$ и $\mathbf{w_v^r}$:
+    $$
+    \begin{equation}
+        dx^r_1 = x^r_j - x^r_i = W(u^r_j,v^r_j) - W(u^r_i, v^r_i) = \mathbf{w^r_u} du^r_1 + \mathbf{w^r_v} dv^r_1 = \mathbf{w^r_u} (u^r_j - u^r_i) + \mathbf{w^r_v} (v^r_j - v^r_i); \\
+        dx^r_2 = x^r_k - x^r_i = W(u^r_k,v^r_k) - W(u^r_i, v^r_i) = \mathbf{w^r_u} du^r_2 + \mathbf{w^r_v} dv^r_2 = \mathbf{w^r_u} (u^r_k - u^r_i) + \mathbf{w^r_v} (v^r_k - v^r_i); 
+    \end{equation}
+    $$
+
+    $$
+    \begin{equation}
+        (dx_1, dx_2) = (w_u, w_v)*U; \ (w_u, w_v) = (dx_1, dx_2)*U^{-1}; \\
+
+        U = 
+        \begin{bmatrix}
+        du_1      & du_2 \\
+        dv_1      & dv_2.
+        \end{bmatrix}
+
+        \
+
+        U^{-1} = 
+        \begin{bmatrix}
+        \frac{-dv_2}{detU}      & \frac{-du_2}{detU} \\
+        \frac{-dv_1}{detU}      & \frac{du_1}{detU}.
+        \end{bmatrix}
+    \end{equation}
+    $$
+    Матрицы $U$ и $U^{-1}$ не зависят от времени и нуждаются в вычислении единожды за все время симуляции.
+
+    Образы вершин будут задавать состояние ткани в каждый момент времени, которое может быть представлено как вектор: 
+
+    $$W(u, v) = x \in \mathbb R ^{3n},$$
+
+    где $n$ - количество вершин в модели, либо как массив $n$ векторов, представляющих координаты $i$ вершины:
+
+    $$W(u_i, v_i) = x_i \in \mathbb R ^{3}.$$
+    
+    Силы, которые действуют на вершины, определяются в терминах векторной функции $\mathbf{C}$. Последняя раскладывается в сумму векторных функций, 
+    зависящих либо от вершин, входящих в треугольник заданной триангуляции, либо от вершин, входящих в пару треугольников с общим ребром.
+    Выпишем выражения для внутренней энергии через эти функции:
+
+    $$
+    \begin{equation}
+    E(x) = {\sum_{r \in triangles}\frac{k}{2} \mathbf{C}_{r}^T(x)\mathbf{C}_{r}(x) + \sum_{s \in pairs}\frac{k}{2} \mathbf{C}_{s}^T(x)\mathbf{C}_{s}(x)}.
+    \end{equation}
+    $$
+
+    Сила, действующая на i вершину, запишется следующим образом:
+
+    $$
+    \begin{equation}
+    F_{i}(x) = - \sum_{r \in triangles_i}  \frac{\partial E_r(x)}{\partial x_{i}} - \sum_{s \in pairs_i} \frac{\partial E_s(x)}{\partial x_{i}}  = \\ 
+        =  - k \sum_{r \in triangles_i} \sum_{v \in components} \frac{\partial C^{v}_r(x)}{\partial x_{i}} C^{v}_r(x) - k \sum_{s \in pairs_i} \sum_{v \in components} \frac{\partial C^{v}_s(x)}{\partial x_{i}} C^{v}_s(x),
+    \end{equation}
+    $$
+
+    где $triangles_i$ - множество треугольников, в которые входит $i$ вершина, $pairs_i$ - множество пар, в которые входит $i$ вершина, и где $C^{v}$ - компоненты вектор-функции $\mathbf{С}$.
+
+    Чтобы реализовать дэмпинг добавим к силам члены, зависящие от скорости: 
+    
+    $$
+    \begin{equation}
+        \mathbf{d} = -k_d \sum_{v \in components} \frac{\partial C^v}{\partial x} \dot C^v, \  \dot C^v =  \frac{\partial C^v}{\partial x^i} \dot x^i
+    \end{equation}
+    $$
+
+    В качестве вектор-функции возьмем 3 функции, зависящих от треугольника, и одну функцию, зависящую от пары треугольников с общим ребром.
+    
+    <div>Функции, контролирующие растяжение и сжатие: </div>
+
+    $$
+    \begin{equation}
+    C_{str_u}(x_{i, j, k}) = (\| \mathbf{w_u}(x_{i, j, k}) \| - b_u), \ C_{str_v}(x_{i, j, k}) = (\| \mathbf{w_v}(x_{i, j, k}) \| - b_u)
+    \end{equation}
+    $$
+
+    <div> Функция, контролирующая сопротивление сдвигу: </div>
+
+    $$
+    \begin{equation}
+    C_{sh}(x_{i, j, k}) = \mathbf{w_u}(x_{i, j, k})^T \mathbf{w_v}(x_{i, j, k})
+    \end{equation}
+    $$
+
+    <div> Функция, контролирующая относительный изгиб между треугольниками: </div>
+    
+    $$
+    \begin{equation}
+    C_b(x_{i,j,k,m}) = 1 - cos(\theta(x_{i,j,k,m})) = 1 - \frac{(\mathbf{N_1}, \mathbf{N_2})}{\| \mathbf{N1} \| \| \mathbf{N2} \|},
+    \end{equation}
+    $$
+
+    где $\theta(x_{i,j,k,m})$ - угол между нормалями $N_1(x_{i,j,k})$, $N_2(x_{j,k,m})$ двух треугольников с общим ребром.
+
+    Для вычисления сил нам понадобятся следующие выражения:
+
+    $$
+    \begin{equation}
+        \frac{\partial C_{str_u}(x)}{\partial x_{i}} = \frac{1}{\| \mathbf{w_u} \|} \mathbf{w_u}^T \partial_i \mathbf{w_u}, \\
+        \frac{\partial C_{str_v}(x)}{\partial x_{i}} = \frac{1}{\| \mathbf{w_v} \|} \mathbf{w_v}^T \partial_i \mathbf{w_v}, \\
+    \end{equation}
+    $$
+    $$
+    \begin{equation}
+        \frac{\partial C_{sh}(x)}{\partial x_{i}} = \mathbf{w_v}^T \partial_i \mathbf{w_u} +  \mathbf{w_u}^T \partial_i \mathbf{w_v} \\ 
+    \end{equation}
+    $$
+    $$
+    \begin{equation}
+        \frac{\partial C_{b}(x)}{\partial x_{i}} = \frac{\mathbf{N_2}^T\partial_i\mathbf{N_1}}{\| \mathbf{N1} \| \| \mathbf{N2} \|} + \frac{\mathbf{N_1}^T \partial_i\mathbf{N_2}}{\| \mathbf{N1} \| \| \mathbf{N2} \|} + ...
+    \end{equation}
+    $$
+
+    </div>
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Cloth.html">Cloth</a></li></ul><h3>Global</h3><ul><li><a href="global.html#bdmxvec">bdmxvec</a></li><li><a href="global.html#cross">cross</a></li><li><a href="global.html#diag">diag</a></li><li><a href="global.html#difvecs">difvecs</a></li><li><a href="global.html#dot">dot</a></li><li><a href="global.html#length">length</a></li><li><a href="global.html#matxvec">matxvec</a></li><li><a href="global.html#multiplyArrayOfMatrices">multiplyArrayOfMatrices</a></li><li><a href="global.html#multiplyMatrices">multiplyMatrices</a></li><li><a href="global.html#numxvec">numxvec</a></li><li><a href="global.html#orthographicMatrix">orthographicMatrix</a></li><li><a href="global.html#perspectiveMatrix">perspectiveMatrix</a></li><li><a href="global.html#rotateXMatrix">rotateXMatrix</a></li><li><a href="global.html#rotateYMatrix">rotateYMatrix</a></li><li><a href="global.html#rotateZMatrix">rotateZMatrix</a></li><li><a href="global.html#scaleMatrix">scaleMatrix</a></li><li><a href="global.html#sumarrayofvecs">sumarrayofvecs</a></li><li><a href="global.html#sumvecs">sumvecs</a></li><li><a href="global.html#translateMatrix">translateMatrix</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.7</a> on Thu Aug 19 2021 15:01:36 GMT+0500 (Yekaterinburg Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

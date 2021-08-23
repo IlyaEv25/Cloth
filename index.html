@@ -92,11 +92,9 @@
   function main() {
     let translate_object = translateMatrix(0.0, 0.0, 0.0);
     let translate_camera = translateMatrix(0.0, 0.0, -50.0);
-    let translate_camera_inv = translateMatrix(0.0, 0.0, 10.0);
-
-    let m1 = new Float32Array(multiplyArrayOfMatrices([translate_camera, rotateZMatrix(3.14), rotateXMatrix(1.5)]));
-    let m2 = new Float32Array(perspectiveMatrix(1.6, 1920/1080, 0.1, 100.0));
-    let m3 = new Float32Array(translateMatrix(0, 0, 0));
+    let viewMat = new Float32Array(multiplyArrayOfMatrices([translate_camera, rotateZMatrix(3.14), rotateXMatrix(1.5)]));
+    let projMat = new Float32Array(perspectiveMatrix(1.6, 1920/1080, 0.1, 100.0));
+    let modelMat = new Float32Array(translate_object);
 
    
     gl.viewport(0, 0, 1920, 1080);
@@ -107,30 +105,28 @@
     gl.clear(gl.COLOR_BUFFER_BIT| gl.DEPTH_BUFFER_BIT);
 
     let cloth = new Cloth(17, gl);
-    let sh = compileShaders(gl); 
+    let shaderProgram = compileShaders(gl); 
 
     function draw(timestamp)
     {
       gl.clearColor(1.0, 1.0, 1.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.useProgram(sh);
+      gl.useProgram(shaderProgram);
 
-      model = gl.getUniformLocation(sh, "model");
-      view = gl.getUniformLocation(sh, "view");
-      projection = gl.getUniformLocation(sh, "projection");
+      model = gl.getUniformLocation(shaderProgram, "model");
+      view = gl.getUniformLocation(shaderProgram, "view");
+      projection = gl.getUniformLocation(shaderProgram, "projection");
 
-      gl.uniformMatrix4fv(model, false, m3);
-      gl.uniformMatrix4fv(view, false, m1);
-      gl.uniformMatrix4fv(projection, false, m2);
+      gl.uniformMatrix4fv(model, false, modelMat);
+      gl.uniformMatrix4fv(view, false, viewMat);
+      gl.uniformMatrix4fv(projection, false, projMat);
       
       cloth.update();
 
       cloth.drawCloth(gl);
 
-      cloth.simulate(0.005);
-      cloth.simulate(0.005);
-      cloth.simulate(0.005);
-      cloth.simulate(0.005);
+      cloth.simulate(0.05);
+      cloth.simulate(0.05);
       
       window.requestAnimationFrame(draw);
     }
